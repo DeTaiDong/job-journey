@@ -30,10 +30,12 @@
 1. 将这个目录提交到自己的 GitHub 仓库，并在 Vercel 导入仓库。
 2. Framework Preset 选 **Vite**，Build Command 为 `npm run build`，Output Directory 为 `dist`。仓库中的 `vercel.json` 已配置构建与页面刷新重写。
 3. 在 Vercel 项目环境变量中设置 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`，与本地值一致。
-4. 部署完成后，在 Supabase → Authentication → URL Configuration 中将 Vercel 地址加入 Site URL / Redirect URLs，以便注册确认邮件正确返回。
+4. 部署完成后，在 Supabase → Authentication → URL Configuration 中将 **Site URL** 从默认的 `http://localhost:3000` 改成你的 Vercel 正式地址，并在 **Redirect URLs** 加入同一个地址，以便注册确认邮件正确返回。
 5. 首次打开网页注册账户。如果只供自己使用，注册成功后可在 Supabase 关闭新用户注册。
 
 Vercel 仅负责托管前端；数据持久化在你的 Supabase 项目。没有配置 Supabase 时网页会显示配置提示，不会假装已同步。
+
+如果验证邮件仍跳转到 `localhost:3000`，检查上述 Site URL；旧邮件中的一次性链接可能已经失效，请在网站登录页重新发送验证邮件，并使用最新邮件的链接。
 
 ## 网站密码说明
 

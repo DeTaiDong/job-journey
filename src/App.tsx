@@ -96,8 +96,26 @@ function Auth({ onNotice, toast }: { onNotice: (value: string) => void; toast: s
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
-  async function submit(e: FormEvent) { e.preventDefault(); if (!supabase) return; setBusy(true); const result = mode === 'login' ? await supabase.auth.signInWithPassword({ email, password }) : await supabase.auth.signUp({ email, password }); setBusy(false); onNotice(result.error ? result.error.message : mode === 'signup' ? '注册成功，请按邮件提示验证邮箱后登录' : '登录成功') }
-  return <div className="auth-page"><div className="auth-decoration"><div className="brand light"><span className="brand-symbol">J</span><span><strong>求职手帐</strong><small>JOB JOURNEY</small></span></div><div className="auth-quote"><span>✦</span><h1>每一步努力，<br />都值得被认真记录。</h1><p>从第一份投递，到下一个好消息。</p></div><div className="auth-orbit orbit-one" /><div className="auth-orbit orbit-two" /></div><div className="auth-form-wrap"><div className="auth-form"><div className="mobile-brand brand"><span className="brand-symbol">J</span><span><strong>求职手帐</strong><small>JOB JOURNEY</small></span></div><div className="eyebrow">WELCOME BACK</div><h2>{mode === 'login' ? '欢迎回来' : '创建你的账户'}</h2><p>登录后，你的投递与日程会在各设备间同步。</p><form onSubmit={submit}><label>邮箱地址<input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" /></label><label>登录密码<input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} minLength={6} required value={password} onChange={e => setPassword(e.target.value)} placeholder="至少 6 位" /></label><button className="primary-button auth-submit" disabled={busy}>{busy ? '请稍候…' : mode === 'login' ? '登录工作台' : '创建账户'} <ArrowRight size={18} /></button></form><p className="auth-switch">{mode === 'login' ? '还没有账户？' : '已经有账户？'} <button onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>{mode === 'login' ? '立即注册' : '返回登录'}</button></p><div className="auth-foot"><ShieldCheck size={17} /> 你的记录仅与你的账户关联</div></div></div>{toast && <div className="toast">{toast}</div>}</div>
+  const [showResend, setShowResend] = useState(false)
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (!supabase) return
+    setBusy(true)
+    const result = mode === 'login'
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } })
+    setBusy(false)
+    setShowResend((mode === 'signup' && !result.error) || Boolean(result.error?.message.toLowerCase().includes('email not confirmed')))
+    onNotice(result.error ? result.error.message : mode === 'signup' ? '注册成功，请查看最新的验证邮件' : '登录成功')
+  }
+  async function resend() {
+    if (!supabase || !email) return
+    setBusy(true)
+    const { error } = await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: window.location.origin } })
+    setBusy(false)
+    onNotice(error ? error.message : '新的验证邮件已发送，请使用最新一封邮件中的链接')
+  }
+  return <div className="auth-page"><div className="auth-decoration"><div className="brand light"><span className="brand-symbol">J</span><span><strong>求职手帐</strong><small>JOB JOURNEY</small></span></div><div className="auth-quote"><span>✦</span><h1>每一步努力，<br />都值得被认真记录。</h1><p>从第一份投递，到下一个好消息。</p></div><div className="auth-orbit orbit-one" /><div className="auth-orbit orbit-two" /></div><div className="auth-form-wrap"><div className="auth-form"><div className="mobile-brand brand"><span className="brand-symbol">J</span><span><strong>求职手帐</strong><small>JOB JOURNEY</small></span></div><div className="eyebrow">WELCOME BACK</div><h2>{mode === 'login' ? '欢迎回来' : '创建你的账户'}</h2><p>登录后，你的投递与日程会在各设备间同步。</p><form onSubmit={submit}><label>邮箱地址<input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" /></label><label>登录密码<input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} minLength={6} required value={password} onChange={e => setPassword(e.target.value)} placeholder="至少 6 位" /></label><button className="primary-button auth-submit" disabled={busy}>{busy ? '请稍候…' : mode === 'login' ? '登录工作台' : '创建账户'} <ArrowRight size={18} /></button></form>{showResend && <button className="resend-button" onClick={resend} disabled={busy || !email}>没有收到或链接失效？重新发送验证邮件</button>}<p className="auth-switch">{mode === 'login' ? '还没有账户？' : '已经有账户？'} <button onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>{mode === 'login' ? '立即注册' : '返回登录'}</button></p><div className="auth-foot"><ShieldCheck size={17} /> 你的记录仅与你的账户关联</div></div></div>{toast && <div className="toast">{toast}</div>}</div>
 }
 function Stat({ label, value, note, icon, tone }: { label: string; value: number; note: string; icon: React.ReactNode; tone: string }) { return <div className="stat-card"><div className={`stat-icon ${tone}`}>{icon}</div><span>{label}</span><strong>{value}</strong><small>{note}</small></div> }
 function Badge({ status }: { status: Status }) { return <span className={`badge badge-${status}`}>{status}</span> }
