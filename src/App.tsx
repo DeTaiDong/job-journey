@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { ArrowRight, BriefcaseBusiness, CalendarDays, Check, ChevronDown, Clock3, ExternalLink, Eye, EyeOff, LayoutDashboard, LockKeyhole, LogOut, Menu, MoreHorizontal, Pencil, Plus, Search, ShieldCheck, Trash2, X } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, CalendarDays, Check, ChevronDown, Clock3, ExternalLink, Eye, EyeOff, LayoutDashboard, LockKeyhole, LogOut, Menu, MoreHorizontal, Pencil, Plus, Search, ShieldCheck, Trash2, Upload, X } from 'lucide-react'
 import { configured, decryptPassword, encryptPassword, formatDate, formatDateTime, safeUrl, supabase, type Application, type Event, type EventType, type Status } from './lib'
+import { parseLegacyText, type ImportRow } from './importer'
 
 type View = 'overview' | 'applications' | 'schedule'
 const statuses: Status[] = ['已投递', '笔试', '面试', 'Offer', '已结束']
@@ -23,6 +24,7 @@ function App() {
   const [eventModal, setEventModal] = useState<Event | 'new' | null>(null)
   const [eventAppId, setEventAppId] = useState('')
   const [vaultRecord, setVaultRecord] = useState<Application | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
   const [vaultPassphrase, setVaultPassphrase] = useState('')
   const [toast, setToast] = useState('')
   const [now, setNow] = useState(Date.now())
@@ -78,13 +80,14 @@ function App() {
           <div className="two-column"><section className="panel"><PanelHead title="近期日程" subtitle="别错过重要的笔试和面试" action="查看全部" onAction={() => closeNav('schedule')} />{upcoming.length ? <div className="timeline">{upcoming.slice(0, 4).map(e => <EventRow key={e.id} event={e} application={nameFor(e.application_id)} onClick={() => setEventModal(e)} />)}</div> : <Empty icon={<CalendarDays size={26} />} title="暂无即将开始的日程" subtitle="收到笔面试通知后，记得把时间记在这里。" action="添加日程" onAction={() => { setEventAppId(''); setEventModal('new') }} />}</section><section className="panel"><PanelHead title="最近投递" subtitle="刚刚更新的申请记录" action="查看全部" onAction={() => closeNav('applications')} />{applications.length ? <div className="recent-list">{applications.slice(0, 5).map(a => <button className="recent-item" key={a.id} onClick={() => setAppModal(a)}><span className="company-mark">{a.company.charAt(0)}</span><span className="recent-name"><strong>{a.company}</strong><small>{a.role}</small></span><Badge status={a.status} /></button>)}</div> : <Empty icon={<BriefcaseBusiness size={26} />} title="从第一条投递开始" subtitle="公司、岗位和链接都能集中记录。" action="新增投递" onAction={() => setAppModal('new')} />}</section></div>
           <div className="hint-banner"><span className="hint-icon"><LockKeyhole size={20} /></span><div><strong>所有重要信息，都有条理地存放</strong><p>为每条投递记录网站链接、备注和加密密码，需要时随时查看。</p></div><button onClick={() => closeNav('applications')}>管理投递 <ArrowRight size={16} /></button></div>
         </>}
-        {view === 'applications' && <><div className="section-header"><div><div className="eyebrow">APPLICATION TRACKER</div><h1>投递记录</h1><p>从投递到 Offer，让每一步都有迹可循。</p></div><button className="primary-button" onClick={() => setAppModal('new')}><Plus size={18} /> 新增投递</button></div><div className="panel table-panel"><div className="toolbar"><div className="search-field"><Search size={18} /><input placeholder="搜索公司、岗位或平台…" value={search} onChange={e => setSearch(e.target.value)} /></div><div className="select-wrap"><select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option>全部状态</option>{statuses.map(s => <option key={s}>{s}</option>)}</select><ChevronDown size={16} /></div></div>{filtered.length ? <div className="table-scroll"><table><thead><tr><th>公司 / 岗位</th><th>投递平台</th><th>投递日期</th><th>当前状态</th><th>操作</th></tr></thead><tbody>{filtered.map(a => <tr key={a.id}><td><div className="company-cell"><span className="company-mark">{a.company.charAt(0)}</span><span><strong>{a.company}</strong><small>{a.role}</small></span></div></td><td>{a.platform || <span className="muted">未填写</span>}</td><td>{formatDate(a.applied_at)}</td><td><Badge status={a.status} /></td><td><div className="row-actions">{safeUrl(a.job_url) && <a className="icon-button" href={safeUrl(a.job_url)} target="_blank" rel="noopener noreferrer" title="打开投递链接"><ExternalLink size={17} /></a>}{a.password_ciphertext && <button className="icon-button" title="查看密码" onClick={() => setVaultRecord(a)}><LockKeyhole size={17} /></button>}<button className="icon-button" title="编辑" onClick={() => setAppModal(a)}><Pencil size={17} /></button><button className="icon-button" title="添加日程" onClick={() => { setEventAppId(a.id); setEventModal('new') }}><CalendarDays size={17} /></button></div></td></tr>)}</tbody></table></div> : <Empty icon={<Search size={26} />} title={applications.length ? '没有符合条件的记录' : '还没有投递记录'} subtitle={applications.length ? '试试调整搜索词或筛选条件。' : '创建第一条，开始整理你的求职进展。'} action={applications.length ? undefined : '新增投递'} onAction={() => setAppModal('new')} />}</div></>}
+        {view === 'applications' && <><div className="section-header"><div><div className="eyebrow">APPLICATION TRACKER</div><h1>投递记录</h1><p>从投递到 Offer，让每一步都有迹可循。</p></div><button className="primary-button" onClick={() => setAppModal('new')}><Plus size={18} /> 新增投递</button></div><div className="panel table-panel"><div className="toolbar"><div className="search-field"><Search size={18} /><input placeholder="搜索公司、岗位或平台…" value={search} onChange={e => setSearch(e.target.value)} /></div><div className="toolbar-actions"><div className="select-wrap"><select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option>全部状态</option>{statuses.map(s => <option key={s}>{s}</option>)}</select><ChevronDown size={16} /></div><button className="secondary-button" onClick={() => setImportOpen(true)}><Upload size={15} /> 导入 TXT</button></div></div>{filtered.length ? <div className="table-scroll"><table><thead><tr><th>公司 / 岗位</th><th>投递平台</th><th>投递日期</th><th>当前状态</th><th>操作</th></tr></thead><tbody>{filtered.map(a => <tr key={a.id}><td><div className="company-cell"><span className="company-mark">{a.company.charAt(0)}</span><span><strong>{a.company}</strong><small>{a.role}</small></span></div></td><td>{a.platform || <span className="muted">未填写</span>}</td><td>{formatDate(a.applied_at)}</td><td><Badge status={a.status} /></td><td><div className="row-actions">{safeUrl(a.job_url) && <a className="icon-button" href={safeUrl(a.job_url)} target="_blank" rel="noopener noreferrer" title="打开投递链接"><ExternalLink size={17} /></a>}{a.password_ciphertext && <button className="icon-button" title="查看密码" onClick={() => setVaultRecord(a)}><LockKeyhole size={17} /></button>}<button className="icon-button" title="编辑" onClick={() => setAppModal(a)}><Pencil size={17} /></button><button className="icon-button" title="添加日程" onClick={() => { setEventAppId(a.id); setEventModal('new') }}><CalendarDays size={17} /></button></div></td></tr>)}</tbody></table></div> : <Empty icon={<Search size={26} />} title={applications.length ? '没有符合条件的记录' : '还没有投递记录'} subtitle={applications.length ? '试试调整搜索词或筛选条件。' : '创建第一条，开始整理你的求职进展。'} action={applications.length ? undefined : '新增投递'} onAction={() => setAppModal('new')} />}</div></>}
         {view === 'schedule' && <><div className="section-header"><div><div className="eyebrow">YOUR SCHEDULE</div><h1>笔面试日程</h1><p>把时间、形式与备注放在一起，重要安排一目了然。</p></div><button className="primary-button" onClick={() => { setEventAppId(''); setEventModal('new') }}><Plus size={18} /> 添加日程</button></div><div className="schedule-grid"><section className="panel schedule-panel"><PanelHead title="即将开始" subtitle={`${upcoming.length} 项待参加安排`} />{upcoming.length ? <div className="timeline">{upcoming.map(e => <EventRow key={e.id} event={e} application={nameFor(e.application_id)} onClick={() => setEventModal(e)} />)}</div> : <Empty icon={<CalendarDays size={26} />} title="暂无即将开始的日程" subtitle="新增笔试或面试时间后会显示在这里。" action="添加日程" onAction={() => setEventModal('new')} />}</section><section className="panel schedule-panel"><PanelHead title="过往安排" subtitle="已完成或已过期的日程" />{events.filter(e => e.completed || new Date(e.starts_at).getTime() < now).length ? <div className="timeline history">{events.filter(e => e.completed || new Date(e.starts_at).getTime() < now).reverse().map(e => <EventRow key={e.id} event={e} application={nameFor(e.application_id)} onClick={() => setEventModal(e)} />)}</div> : <Empty icon={<Clock3 size={26} />} title="暂无过往安排" subtitle="结束的安排会留在这里，方便回顾。" />}</section></div></>}
       </div>
     </main>
     {appModal && <ApplicationDialog record={appModal} userId={session.user.id} passphrase={vaultPassphrase} onPassphrase={setVaultPassphrase} onClose={() => setAppModal(null)} onSaved={() => { setAppModal(null); setToast('投递记录已保存'); void refresh() }} onDeleted={() => { setAppModal(null); setToast('投递记录已删除'); void refresh() }} />}
     {eventModal && <EventDialog record={eventModal} applications={applications} initialAppId={eventAppId} userId={session.user.id} onClose={() => setEventModal(null)} onSaved={() => { setEventModal(null); setToast('日程已保存'); void refresh() }} onDeleted={() => { setEventModal(null); setToast('日程已删除'); void refresh() }} />}
     {vaultRecord && <VaultDialog record={vaultRecord} passphrase={vaultPassphrase} onPassphrase={setVaultPassphrase} onClose={() => setVaultRecord(null)} />}
+    {importOpen && <ImportDialog userId={session.user.id} existing={applications} passphrase={vaultPassphrase} onPassphrase={setVaultPassphrase} onClose={() => setImportOpen(false)} onImported={count => { setImportOpen(false); setToast(`已导入 ${count} 条投递记录`); void refresh() }} />}
     {toast && <div className="toast" role="status"><Check size={16} /> {toast}</div>}
     {loading && <span className="refresh-indicator">正在同步…</span>}
   </div>
@@ -151,6 +154,83 @@ function VaultDialog({ record, passphrase, onPassphrase, onClose }: { record: Ap
   const [busy, setBusy] = useState(false)
   const [visible, setVisible] = useState(false)
   async function unlock(e: FormEvent) { e.preventDefault(); setBusy(true); setError(''); try { setPassword(await decryptPassword(record, passphrase)) } catch { setError('口令不正确，或密码数据已损坏。') } finally { setBusy(false) } }
-  return <Dialog title="查看网站密码" subtitle={`${record.company} · ${record.platform || '投递网站'}`} onClose={onClose}><div className="dialog-form">{password ? <><div className="vault-result"><span>网站密码</span><strong>{visible ? password : '•'.repeat(Math.min(password.length, 18))}</strong><button className="icon-button" aria-label={visible ? '隐藏密码' : '显示密码'} onClick={() => setVisible(!visible)}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button></div><button className="secondary-button" onClick={async () => { await navigator.clipboard.writeText(password); onClose() }}>复制密码</button></> : <form onSubmit={unlock}><label>保险箱口令<input autoFocus type="password" autoComplete="off" value={passphrase} onChange={e => onPassphrase(e.target.value)} placeholder="输入保存密码时使用的口令" /></label>{error && <p className="form-error">{error}</p>}<button className="primary-button auth-submit" disabled={busy || !passphrase}>{busy ? '解密中…' : '解锁密码'} <LockKeyhole size={17} /></button></form>}<p className="field-help">关闭窗口后，解密出的密码会从页面中移除。</p></div></Dialog>
+  return <Dialog title="查看网站密码" subtitle={`${record.company} · ${record.platform || '投递网站'}`} onClose={onClose}><div className="dialog-form">{password ? <><div className="vault-result"><span>网站密码</span><strong className="vault-secret">{visible ? password : '•'.repeat(Math.min(password.length, 18))}</strong><button className="icon-button" aria-label={visible ? '隐藏密码' : '显示密码'} onClick={() => setVisible(!visible)}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button></div><button className="secondary-button" onClick={async () => { await navigator.clipboard.writeText(password); onClose() }}>复制密码</button></> : <form onSubmit={unlock}><label>保险箱口令<input autoFocus type="password" autoComplete="off" value={passphrase} onChange={e => onPassphrase(e.target.value)} placeholder="输入保存密码时使用的口令" /></label>{error && <p className="form-error">{error}</p>}<button className="primary-button auth-submit" disabled={busy || !passphrase}>{busy ? '解密中…' : '解锁密码'} <LockKeyhole size={17} /></button></form>}<p className="field-help">关闭窗口后，解密出的密码会从页面中移除。</p></div></Dialog>
+}
+
+function ImportDialog({ userId, existing, passphrase, onPassphrase, onClose, onImported }: { userId: string; existing: Application[]; passphrase: string; onPassphrase: (value: string) => void; onClose: () => void; onImported: (count: number) => void }) {
+  const [rows, setRows] = useState<ImportRow[]>([])
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [date, setDate] = useState('')
+  const [fileName, setFileName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const chosen = rows.filter((_row, index) => selected.has(index))
+  const secretCount = chosen.filter(row => row.password).length
+
+  async function loadFile(file?: File) {
+    if (!file) return
+    setError('')
+    if (file.size > 1024 * 1024) { setError('TXT 文件不能超过 1 MB'); return }
+    const parsed = parseLegacyText(await file.text())
+    if (!parsed.length) { setError('没有识别到投递记录。请确认选择的是原始 TXT 文件。'); return }
+    setRows(parsed)
+    setFileName(file.name)
+    setSelected(new Set(parsed.flatMap((row, index) => existing.some(item => item.company === row.company) ? [] : [index])))
+  }
+  function toggle(index: number) {
+    setSelected(previous => {
+      const next = new Set(previous)
+      if (next.has(index)) next.delete(index)
+      else next.add(index)
+      return next
+    })
+  }
+  function updateRole(index: number, role: string) {
+    setRows(previous => previous.map((row, rowIndex) => rowIndex === index ? { ...row, role } : row))
+  }
+  async function importRows() {
+    if (!supabase || !chosen.length) return
+    if (!date) { setError('原文件没有投递日期，请选择一个暂用日期，导入后可以逐条修改。'); return }
+    if (secretCount && passphrase.length < 8) { setError('文件中有网站密码，请输入至少 8 位保险箱口令。'); return }
+    if (chosen.some(row => !row.role.trim())) { setError('岗位名称不能为空；不知道具体岗位时可保留“岗位待补充”。'); return }
+    setBusy(true)
+    setError('')
+    try {
+      const payload = await Promise.all(chosen.map(async row => ({
+        user_id: userId,
+        company: row.company,
+        role: row.role.trim(),
+        status: '已投递' as Status,
+        applied_at: date,
+        job_url: row.job_url || null,
+        platform: row.platform || null,
+        notes: ['从原 TXT 导入；原文件未记录准确投递日期与具体岗位，请核对。', row.notes].filter(Boolean).join('\n'),
+        ...(row.password ? await encryptPassword(row.password, passphrase) : {})
+      })))
+      const { error: insertError } = await supabase.from('applications').insert(payload)
+      if (insertError) throw insertError
+      onImported(chosen.length)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '导入失败，请重试')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return <Dialog title="批量导入投递记录" subtitle="选择原始 TXT，确认后一次导入" onClose={onClose}>
+    <div className="dialog-form import-form">
+      <label className="import-file"><Upload size={20} /><span>{fileName || '点击选择电脑上的 TXT 文件'}</span><input type="file" accept=".txt,text/plain" onChange={event => void loadFile(event.target.files?.[0])} disabled={busy} /></label>
+      {rows.length > 0 && <>
+        <p className="import-summary">识别到 {rows.length} 家公司，已选 {chosen.length} 条；其中 {secretCount} 条含需要加密的密码或编码。同名公司默认不勾选，以免重复导入。</p>
+        <div className="import-list">{rows.map((row, index) => <div className="import-item" key={`${row.company}-${index}`}>
+          <label className="import-choice"><input type="checkbox" checked={selected.has(index)} onChange={() => toggle(index)} disabled={busy} /><span><strong>{row.company}</strong><small>{row.platform || '无网站链接'} · {row.password ? '含加密凭据' : '无密码'}{existing.some(item => item.company === row.company) ? ' · 已有同名记录' : ''}</small></span></label>
+          <input aria-label={`${row.company}岗位名称`} value={row.role} maxLength={150} onChange={event => updateRole(index, event.target.value)} disabled={busy || !selected.has(index)} />
+        </div>)}</div>
+        <div className="form-grid"><label>暂用投递日期 <span>*</span><input type="date" value={date} onChange={event => setDate(event.target.value)} disabled={busy} /></label><label>保险箱口令 {secretCount ? '*' : ''}<input type="password" autoComplete="off" value={passphrase} onChange={event => onPassphrase(event.target.value)} disabled={busy} placeholder="用于加密文件中的密码，至少 8 位" /></label></div>
+        <p className="field-help">原 TXT 没有准确的投递日期和具体岗位。这里的日期会用于选中的所有记录；导入后可逐条修改。口令不会上传。</p>
+      </>}
+      {error && <p className="form-error">{error}</p>}
+      <div className="dialog-actions"><span /><button type="button" className="secondary-button" onClick={onClose} disabled={busy}>取消</button><button type="button" className="primary-button" disabled={busy || !chosen.length} onClick={() => void importRows()}>{busy ? '正在加密并导入…' : `导入 ${chosen.length} 条`}</button></div>
+    </div>
+  </Dialog>
 }
 export default App
