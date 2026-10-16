@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">双页：求职手帐图标方案 B</title>
+  <rect width="64" height="64" fill="#F9F8F6"/>
+  <path d="M32 17c-7-5-15-6-23-4v34c8-2 16-1 23 4 7-5 15-6 23-4V13c-8-2-16-1-23 4z" fill="none" stroke="#1C1C1C" stroke-width="4" stroke-linejoin="miter"/>
+  <path d="M32 17v34M16 24c4 0 7 1 10 2M38 26c3-1 6-2 10-2" fill="none" stroke="#1C1C1C" stroke-width="4" stroke-linecap="square"/>
+</svg>

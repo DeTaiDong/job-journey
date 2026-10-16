@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>求职手帐 · 图标备选</title>
+  <style>
+    :root { color: #1c1c1c; background: #f9f8f6; font-family: Arial, "Microsoft YaHei", sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 48px 24px; }
+    main { max-width: 900px; margin: auto; }
+    h1 { margin: 0 0 12px; font: 400 clamp(32px, 6vw, 56px)/1.2 Georgia, "Songti SC", serif; }
+    p { line-height: 1.7; }
+    .intro { color: #555; margin-bottom: 40px; }
+    .options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+    article { border: 1px solid #d7d4cf; padding: 24px; background: #fff; }
+    h2 { font: 400 28px/1.25 Georgia, "Songti SC", serif; margin: 16px 0 8px; }
+    .icon-large { width: 80px; height: 80px; border: 1px solid #ddd9d3; }
+    .sizes { display: flex; align-items: center; gap: 16px; min-height: 72px; border-top: 1px solid #e9e6e1; padding-top: 20px; margin-top: 20px; }
+    .sizes span { display: inline-flex; flex-direction: column; align-items: center; gap: 8px; color: #555; font-size: 12px; }
+    .sizes img { display: block; }
+    .caption { color: #555; min-height: 3.4em; }
+    @media (max-width: 700px) { .options { grid-template-columns: 1fr; } .caption { min-height: auto; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>求职手帐 · 图标备选</h1>
+    <p class="intro">三款都使用米白底与深灰线条。下方展示 16、32 和 64 像素效果，便于判断浏览器标签栏里的辨识度。</p>
+    <div class="options">
+      <article>
+        <img class="icon-large" src="logo-options/folio.svg" alt="方案 A：折页" />
+        <h2>A · 折页</h2>
+        <p class="caption">一张带折角的记录页，对应投递信息与备注。</p>
+        <div class="sizes"><span><img src="logo-options/folio.svg" width="16" height="16" alt="" />16px</span><span><img src="logo-options/folio.svg" width="32" height="32" alt="" />32px</span><span><img src="logo-options/folio.svg" width="64" height="64" alt="" />64px</span></div>
+      </article>
+      <article>
+        <img class="icon-large" src="logo-options/spread.svg" alt="方案 B：双页" />
+        <h2>B · 双页</h2>
+        <p class="caption">打开的手帐，直接呼应“求职手帐”的名称。</p>
+        <div class="sizes"><span><img src="logo-options/spread.svg" width="16" height="16" alt="" />16px</span><span><img src="logo-options/spread.svg" width="32" height="32" alt="" />32px</span><span><img src="logo-options/spread.svg" width="64" height="64" alt="" />64px</span></div>
+      </article>
+      <article>
+        <img class="icon-large" src="logo-options/schedule.svg" alt="方案 C：日程" />
+        <h2>C · 日程</h2>
+        <p class="caption">带勾选标记的日历，强调笔面试安排。</p>
+        <div class="sizes"><span><img src="logo-options/schedule.svg" width="16" height="16" alt="" />16px</span><span><img src="logo-options/schedule.svg" width="32" height="32" alt="" />32px</span><span><img src="logo-options/schedule.svg" width="64" height="64" alt="" />64px</span></div>
+      </article>
+    </div>
+  </main>
+</body>
+</html>

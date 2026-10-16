@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#6748d7"/>
-  <path d="M311 124v200c0 65-39 100-103 100-39 0-73-18-92-48l45-39c11 17 25 25 45 25 27 0 41-14 41-43V124z" fill="#fff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">求职手帐</title>
+  <rect width="64" height="64" fill="#F9F8F6"/>
+  <path d="M32 17c-7-5-15-6-23-4v34c8-2 16-1 23 4 7-5 15-6 23-4V13c-8-2-16-1-23 4z" fill="none" stroke="#1C1C1C" stroke-width="4" stroke-linejoin="miter"/>
+  <path d="M32 17v34M16 24c4 0 7 1 10 2M38 26c3-1 6-2 10-2" fill="none" stroke="#1C1C1C" stroke-width="4" stroke-linecap="square"/>
 </svg>
