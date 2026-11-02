@@ -1,6 +1,6 @@
 # 求职手帐
 
-一个供个人使用的投递与笔面试日程管理网页，可部署在 Vercel，通过 Supabase 在不同设备间同步。
+一个供个人使用的投递与笔面试日程管理网页，可部署在腾讯云 EdgeOne Pages 或 Vercel，通过 Supabase 在不同设备间同步。
 
 ## 功能
 
@@ -39,6 +39,18 @@
 Vercel 仅负责托管前端；数据持久化在你的 Supabase 项目。没有配置 Supabase 时网页会显示配置提示，不会假装已同步。
 
 如果验证邮件仍跳转到 `localhost:3000`，检查上述 Site URL；旧邮件中的一次性链接可能已经失效，请在网站登录页重新发送验证邮件，并使用最新邮件的链接。
+
+## 部署到腾讯云 EdgeOne Pages
+
+1. 将代码推送到 GitHub，在 [EdgeOne Pages 控制台](https://console.cloud.tencent.com/edgeone/pages) 创建项目并连接该仓库。生产分支选择 `main`。
+2. 加速区域选择 **中国大陆可用区**。构建命令填写 `npm run build`，输出目录填写 `dist`，根目录保持仓库根目录。不要直接套用普通 React 项目的 `build` 输出目录；本项目使用 Vite，实际输出是 `dist`。
+3. 在 Pages 的构建环境变量中分别添加 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`，值与 Vercel 项目中正在使用的值相同。只使用 Supabase 的 publishable / anon key，不使用 secret 或 service role key。环境变量在构建时写入前端；修改后需重新部署。
+4. 首次部署后可通过项目概览中的临时预览链接检查页面。**长期在中国大陆访问需要绑定已完成 ICP 备案的自有域名**；大陆加速区域的系统预览链接有效期为 3 小时，不能当作长期网址。如果还没有域名，先在「域名注册 → 我的域名」确认，再按需购买并完成域名实名认证。腾讯云首次 ICP 备案还要求账号实名认证及符合条件的备案云资源；EdgeOne Pages 本身不应被默认视作备案云资源，购买前请在备案控制台核对可用产品。备案完成后，在 Pages 项目设置的域名管理中添加域名，按控制台提示添加 DNS 记录并等待 HTTPS 证书生效。
+5. 在 Supabase → Authentication → URL Configuration 中将 **Site URL** 改为新的正式 `https://` 域名，并将该域名加入 **Redirect URLs**。本项目注册和重发验证邮件时会把当前网页地址传给 Supabase；若新域名不在允许列表，邮件确认可能无法正确返回。确认新域名上的登录、记录读取和新增功能正常后再停用旧 Vercel 地址。
+
+仅迁移前端不会移动或删除 Supabase 中的投递、日程数据。浏览器仍会直接连接 Supabase；若大陆网络中网页已打开但登录或数据加载卡住，需要再单独处理 Supabase 的可达性。
+
+参考：[EdgeOne Pages 构建与环境变量](https://edgeone.cloud.tencent.com/pages/document/162936788693114880)、[大陆区域与域名规则](https://edgeone.cloud.tencent.com/pages/document/175191784523485184)、[Supabase 登录跳转网址](https://supabase.com/docs/guides/auth/redirect-urls)。
 
 ## 网站密码说明
 

@@ -146,7 +146,7 @@ function App() {
   </div>
 }
 
-function Setup() { return <div className="auth-page"><div className="auth-card"><span className="brand-symbol">J</span><div className="eyebrow">INITIAL SETUP</div><h1>先连接你的数据库</h1><p>跨设备同步需要 Supabase。请按项目 README 创建数据库，并在 Vercel 或本地环境变量中设置 <code>VITE_SUPABASE_URL</code> 和 <code>VITE_SUPABASE_ANON_KEY</code>。</p><div className="setup-note"><ShieldCheck size={19} /> 请使用公开的 publishable / anon key，切勿填入 service role key。</div></div></div> }
+function Setup() { return <div className="auth-page"><div className="auth-card"><span className="brand-symbol">J</span><div className="eyebrow">INITIAL SETUP</div><h1>先连接你的数据库</h1><p>跨设备同步需要 Supabase。请按项目 README 创建数据库，并在部署平台或本地环境变量中设置 <code>VITE_SUPABASE_URL</code> 和 <code>VITE_SUPABASE_ANON_KEY</code>。</p><div className="setup-note"><ShieldCheck size={19} /> 请使用公开的 publishable / anon key，切勿填入 service role key。</div></div></div> }
 function Auth({ onNotice, toast }: { onNotice: (value: string) => void; toast: string }) {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
