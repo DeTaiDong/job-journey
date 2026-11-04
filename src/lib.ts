@@ -58,7 +58,14 @@ export function formatDate(date: string) {
   return new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric' }).format(new Date(date))
 }
 export function formatDateTime(date: string) {
-  return new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(date))
+  return new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'long', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(date))
+}
+// datetime-local has no timezone. The schedule form always reads and writes Beijing time.
+export function toBeijingDateTimeInput(date: string) {
+  return new Date(new Date(date).getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 16)
+}
+export function fromBeijingDateTimeInput(value: string) {
+  return new Date(`${value}:00+08:00`)
 }
 export function safeUrl(value: string | null) {
   if (!value) return undefined

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { ArrowRight, BriefcaseBusiness, CalendarDays, Check, ChevronDown, Clock3, Download, ExternalLink, Eye, EyeOff, LayoutDashboard, LockKeyhole, LogOut, Menu, Pencil, Plus, Search, ShieldCheck, Trash2, Upload, X } from 'lucide-react'
-import { configured, decryptPassword, encryptPassword, formatDate, formatDateTime, safeUrl, supabase, type Application, type Event, type EventType, type Status } from './lib'
+import { configured, decryptPassword, encryptPassword, formatDate, formatDateTime, fromBeijingDateTimeInput, safeUrl, supabase, toBeijingDateTimeInput, type Application, type Event, type EventType, type Status } from './lib'
 import { parseLegacyText, type ImportRow } from './importer'
 import { displayPlatform, displayRole, displayText, firstLink } from './display'
 import { Button } from './Button'
@@ -53,10 +53,12 @@ function App() {
     else { setApplications(a.data as Application[]); setEvents(e.data as Event[]) }
     setLoading(false)
   }
-  const pending = useMemo(() => events.filter(e => !e.completed), [events])
-  const upcoming = useMemo(() => pending.filter(e => new Date(e.starts_at).getTime() >= now), [pending, now])
-  const overdue = useMemo(() => pending.filter(e => new Date(e.starts_at).getTime() < now), [pending, now])
-  const completedEvents = useMemo(() => events.filter(e => e.completed).reverse(), [events])
+  const futureEvents = useMemo(() => events.filter(e => new Date(e.starts_at).getTime() >= now), [events, now])
+  const pastEvents = useMemo(() => events.filter(e => new Date(e.starts_at).getTime() < now).reverse(), [events, now])
+  const pending = useMemo(() => futureEvents.filter(e => !e.completed), [futureEvents])
+  const overdue = useMemo(() => pastEvents.filter(e => !e.completed), [pastEvents])
+  const completedEvents = useMemo(() => pastEvents.filter(e => e.completed), [pastEvents])
+  const upcoming = pending
   const filtered = useMemo(() => applications.filter(a => (statusFilter === '全部状态' || a.status === statusFilter) && `${a.company} ${a.role} ${a.platform || ''}`.toLowerCase().includes(search.toLowerCase())), [applications, search, statusFilter])
   const nameFor = (id: string) => applications.find(a => a.id === id)
   const closeNav = (next: View) => { setView(next); setMenuOpen(false) }
@@ -129,10 +131,10 @@ function App() {
         </>}
         {view === 'applications' && <><div className="section-header"><div><h1>投递记录</h1><p>共 {applications.length} 条，按公司、岗位或状态查找</p></div><Button highlighted onClick={() => setAppModal('new')}><Plus size={18} /> 新增投递</Button></div><div className="panel table-panel"><div className="toolbar"><div className="search-field"><Search size={18} /><input placeholder="搜索公司、岗位或平台…" value={search} onChange={e => setSearch(e.target.value)} /></div><div className="toolbar-actions"><div className="select-wrap"><select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option>全部状态</option>{statuses.map(s => <option key={s}>{s}</option>)}</select><ChevronDown size={16} /></div><Button variant="secondary" onClick={() => setImportOpen(true)}><Upload size={15} /> 导入 TXT</Button></div></div>{filtered.length ? <div className="table-scroll"><table><thead><tr><th>公司 / 岗位</th><th>投递平台</th><th>投递日期</th><th>当前状态</th><th>操作</th></tr></thead><tbody>{filtered.map(a => <tr key={a.id}><td><div className="company-cell"><span className="company-mark">{a.company.charAt(0)}</span><span><strong>{a.company}</strong><small>{displayRole(a.role)}</small></span></div></td><td>{displayPlatform(a.platform, a.job_url)}</td><td>{formatDate(a.applied_at)}</td><td><Badge status={a.status} /></td><td><div className="row-actions">{safeUrl(a.job_url) && <a className="row-link" href={safeUrl(a.job_url)} target="_blank" rel="noopener noreferrer" title="打开投递网站"><ExternalLink size={17} /><span>打开网站</span></a>}{a.password_ciphertext && <button className="icon-button" title="查看密码" onClick={() => setVaultRecord(a)}><LockKeyhole size={17} /></button>}<button className="icon-button" title="编辑" onClick={() => setAppModal(a)}><Pencil size={17} /></button><button className="icon-button" title="添加日程" onClick={() => { setEventAppId(a.id); setEventModal('new') }}><CalendarDays size={17} /></button></div></td></tr>)}</tbody></table></div> : <Empty icon={<Search size={26} />} title={applications.length ? '没有符合条件的记录' : '还没有投递记录'} subtitle={applications.length ? '试试调整搜索词或筛选条件。' : '创建第一条，开始整理你的求职进展。'} action={applications.length ? undefined : '新增投递'} onAction={() => setAppModal('new')} />}</div></>}
         {view === 'schedule' && <>
-          <div className="section-header"><div><h1>笔面试日程</h1><p>待办 {pending.length} 项{overdue.length ? `，已过期 ${overdue.length} 项` : ''}</p></div><Button highlighted onClick={() => { setEventAppId(''); setEventModal('new') }}><Plus size={18} /> 添加日程</Button></div>
+          <div className="section-header"><div><h1>笔面试日程</h1><p>未来 {futureEvents.length} 项{overdue.length ? `，过往未完成 ${overdue.length} 项` : ''}</p></div><Button highlighted onClick={() => { setEventAppId(''); setEventModal('new') }}><Plus size={18} /> 添加日程</Button></div>
           <div className="schedule-grid">
-            <section className="panel schedule-panel"><PanelHead title="待办安排" subtitle="可直接完成或修改时间" />{pending.length ? <div className="timeline">{pending.map(renderEventRow)}</div> : <Empty icon={<CalendarDays size={26} />} title="暂无待办日程" subtitle="新增笔试或面试时间后会显示在这里。" action="添加日程" onAction={() => setEventModal('new')} />}</section>
-            <section className="panel schedule-panel"><PanelHead title="已完成" subtitle={`${completedEvents.length} 项已完成安排`} />{completedEvents.length ? <div className="timeline history">{completedEvents.map(renderEventRow)}</div> : <Empty icon={<Clock3 size={26} />} title="暂无已完成日程" subtitle="完成的安排会留在这里，方便回顾。" />}</section>
+            <section className="panel schedule-panel"><PanelHead title="待安排" subtitle={`${futureEvents.length} 项未来日程 · 北京时间`} />{futureEvents.length ? <div className="timeline">{futureEvents.map(renderEventRow)}</div> : <Empty icon={<CalendarDays size={26} />} title="暂无未来日程" subtitle="新增笔试或面试时间后会显示在这里。" action="添加日程" onAction={() => setEventModal('new')} />}</section>
+            <section className="panel schedule-panel"><PanelHead title="过往安排" subtitle={`${pastEvents.length} 项已到时间 · ${completedEvents.length} 项已标记完成`} />{pastEvents.length ? <div className="timeline history">{pastEvents.map(renderEventRow)}</div> : <Empty icon={<Clock3 size={26} />} title="暂无过往日程" subtitle="时间已过的安排会留在这里，方便回顾。" />}</section>
           </div>
         </>}
       </div>
@@ -191,19 +193,19 @@ function PanelHead({ title, subtitle, action, onAction }: { title: string; subti
 function Empty({ icon, title, subtitle, action, onAction }: { icon: React.ReactNode; title: string; subtitle: string; action?: string; onAction?: () => void }) { return <div className="empty"><span className="empty-icon">{icon}</span><strong>{title}</strong><p>{subtitle}</p>{action && <button className="text-button" onClick={onAction}>{action} <ArrowRight size={16} /></button>}</div> }
 function EventRow({ event, application, now, onClick, onToggleDone, onReschedule }: { event: Event; application?: Application; now: number; onClick: () => void; onToggleDone: () => Promise<boolean>; onReschedule: (startsAt: string) => Promise<boolean> }) {
   const [rescheduling, setRescheduling] = useState(false)
-  const [draft, setDraft] = useState(() => new Date(event.starts_at).toLocaleString('sv-SE').replace(' ', 'T').slice(0, 16))
+  const [draft, setDraft] = useState(() => toBeijingDateTimeInput(event.starts_at))
   const [busy, setBusy] = useState(false)
   const location = displayText(event.location)
   const eventLink = firstLink(event.location) || firstLink(event.notes)
   const link = eventLink || safeUrl(application?.job_url || null)
   const details = [application ? displayRole(application.role) : '日程记录', location].filter(value => value !== '未填写').join(' · ')
   const eventDate = new Date(event.starts_at)
-  const day = new Date(now)
-  const dayDifference = Math.round((new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate()).getTime() - new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime()) / 86400000)
+  const beijingOffset = 8 * 60 * 60 * 1000
+  const dayDifference = Math.floor((eventDate.getTime() + beijingOffset) / 86400000) - Math.floor((now + beijingOffset) / 86400000)
   const timing = event.completed ? '已完成' : eventDate.getTime() < now ? '已过期' : dayDifference === 0 ? '今天' : dayDifference === 1 ? '明天' : ''
   async function submitTime(e: FormEvent) {
     e.preventDefault()
-    const time = new Date(draft)
+    const time = fromBeijingDateTimeInput(draft)
     if (!draft || Number.isNaN(time.getTime())) return
     setBusy(true)
     if (await onReschedule(time.toISOString())) setRescheduling(false)
@@ -212,17 +214,17 @@ function EventRow({ event, application, now, onClick, onToggleDone, onReschedule
   return <div className="event-row">
     <div className="event-row-line">
       <button className="event-details" onClick={onClick} aria-label={`编辑 ${application?.company || '已删除的投递'} ${event.type}`}>
-        <span className="event-date"><strong>{eventDate.getDate()}</strong><small>{new Intl.DateTimeFormat('zh-CN', { month: 'short' }).format(eventDate)}</small></span>
+        <span className="event-date"><strong>{new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', day: 'numeric' }).format(eventDate)}</strong><small>{new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'short' }).format(eventDate)}</small></span>
         <span className="event-main"><strong>{application?.company || '已删除的投递'} · {event.type}</strong><small>{details || '未填写'}</small></span>
-        <span className="event-time">{timing && <span className={`time-chip ${timing === '已过期' ? 'late' : ''}`}>{timing}</span>}{new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit' }).format(eventDate)}</span>
+        <span className="event-time">{timing && <span className={`time-chip ${timing === '已过期' ? 'late' : ''}`}>{timing}</span>}{new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit' }).format(eventDate)}</span>
       </button>
       <div className="event-quick">
         {link && <a className="event-link" href={link} target="_blank" rel="noopener noreferrer" aria-label={eventLink ? '打开日程链接' : '打开投递网站'} title={eventLink ? '打开日程链接' : '打开投递网站'}><ExternalLink size={17} /><span>{eventLink ? '打开链接' : '打开网站'}</span></a>}
         <button className="quick-action" disabled={busy} onClick={async () => { setBusy(true); await onToggleDone(); setBusy(false) }} title={event.completed ? '恢复待办' : '标记完成'} aria-label={event.completed ? '恢复待办' : '标记完成'}><Check size={16} /><span>{event.completed ? '重开' : '完成'}</span></button>
-        {!event.completed && <button className="quick-action" disabled={busy} onClick={() => { setDraft(new Date(event.starts_at).toLocaleString('sv-SE').replace(' ', 'T').slice(0, 16)); setRescheduling(value => !value) }} title="修改时间" aria-label="修改时间"><Clock3 size={16} /><span>改时间</span></button>}
+        {!event.completed && <button className="quick-action" disabled={busy} onClick={() => { setDraft(toBeijingDateTimeInput(event.starts_at)); setRescheduling(value => !value) }} title="修改时间" aria-label="修改时间"><Clock3 size={16} /><span>改时间</span></button>}
       </div>
     </div>
-    {rescheduling && <form className="event-inline-form" onSubmit={submitTime}><label>新的开始时间<input type="datetime-local" required value={draft} onChange={e => setDraft(e.target.value)} /></label><button className="primary-button" disabled={busy}>保存时间</button><button type="button" className="secondary-button" onClick={() => setRescheduling(false)}>取消</button></form>}
+    {rescheduling && <form className="event-inline-form" onSubmit={submitTime}><label>新的开始时间（北京时间）<input type="datetime-local" required value={draft} onChange={e => setDraft(e.target.value)} /></label><button className="primary-button" disabled={busy}>保存时间</button><button type="button" className="secondary-button" onClick={() => setRescheduling(false)}>取消</button></form>}
   </div>
 }
 
@@ -241,10 +243,10 @@ function ApplicationDialog({ record, userId, passphrase, onPassphrase, onClose, 
 }
 function EventDialog({ record, applications, initialAppId, userId, onClose, onSaved, onDeleted }: { record: Event | 'new'; applications: Application[]; initialAppId: string; userId: string; onClose: () => void; onSaved: () => void; onDeleted: () => void }) {
   const editing = record !== 'new'
-  const [form, setForm] = useState(() => editing ? { application_id: record.application_id, type: record.type, starts_at: new Date(record.starts_at).toLocaleString('sv-SE').replace(' ', 'T').slice(0, 16), location: record.location || '', notes: record.notes || '', completed: record.completed } : { ...emptyEvent, application_id: initialAppId || applications[0]?.id || '' })
+  const [form, setForm] = useState(() => editing ? { application_id: record.application_id, type: record.type, starts_at: toBeijingDateTimeInput(record.starts_at), location: record.location || '', notes: record.notes || '', completed: record.completed } : { ...emptyEvent, application_id: initialAppId || applications[0]?.id || '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  async function save(e: FormEvent) { e.preventDefault(); if (!supabase) return; setBusy(true); setError(''); const payload = { user_id: userId, application_id: form.application_id, type: form.type, starts_at: new Date(form.starts_at).toISOString(), location: form.location.trim() || null, notes: form.notes.trim() || null, completed: form.completed }; const result = editing ? await supabase.from('events').update(payload).eq('id', record.id) : await supabase.from('events').insert(payload); setBusy(false); if (result.error) setError(result.error.message); else onSaved() }
+  async function save(e: FormEvent) { e.preventDefault(); if (!supabase) return; const startsAt = fromBeijingDateTimeInput(form.starts_at); if (Number.isNaN(startsAt.getTime())) { setError('请输入有效的北京时间'); return } setBusy(true); setError(''); const payload = { user_id: userId, application_id: form.application_id, type: form.type, starts_at: startsAt.toISOString(), location: form.location.trim() || null, notes: form.notes.trim() || null, completed: form.completed }; const result = editing ? await supabase.from('events').update(payload).eq('id', record.id) : await supabase.from('events').insert(payload); setBusy(false); if (result.error) setError(result.error.message); else onSaved() }
   async function remove() { if (!editing || !supabase || !confirm('确定删除这条日程吗？')) return; setBusy(true); const { error } = await supabase.from('events').delete().eq('id', record.id); setBusy(false); if (error) setError(error.message); else onDeleted() }
   return <Dialog title={editing ? '编辑笔面试日程' : '添加笔面试日程'} subtitle="填写笔面试时间和备注" onClose={onClose}><form onSubmit={save} className="dialog-form"><label>关联投递 <span>*</span><select required value={form.application_id} onChange={e => setForm({ ...form, application_id: e.target.value })}><option value="">请选择投递记录</option>{applications.map(a => <option key={a.id} value={a.id}>{a.company} · {displayRole(a.role)}</option>)}</select></label><div className="form-grid"><label>日程类型<select value={form.type} onChange={e => setForm({ ...form, type: e.target.value as EventType })}>{eventTypes.map(t => <option key={t}>{t}</option>)}</select></label><label>开始时间 <span>*</span><input type="datetime-local" required value={form.starts_at} onChange={e => setForm({ ...form, starts_at: e.target.value })} /></label></div><label>地点或会议链接<input maxLength={500} value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="线下地址或腾讯会议链接" /></label><label>备注<textarea rows={4} maxLength={3000} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="考试形式、需要准备的材料、联系人…" /></label><label className="checkbox-label"><input type="checkbox" checked={form.completed} onChange={e => setForm({ ...form, completed: e.target.checked })} /> 标记为已完成</label>{editing && <div className="event-summary"><Clock3 size={16} /> {formatDateTime(record.starts_at)}</div>}{error && <p className="form-error">{error}</p>}<div className="dialog-actions">{editing && <button type="button" className="danger-button" onClick={remove} disabled={busy}><Trash2 size={16} /> 删除</button>}<span /><button type="button" className="secondary-button" onClick={onClose}>取消</button><button className="primary-button" disabled={busy || !applications.length}>{busy ? '保存中…' : '保存日程'}</button></div>{!applications.length && <p className="field-help">请先添加一条投递记录。</p>}</form></Dialog>
 }
