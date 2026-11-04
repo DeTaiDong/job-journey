@@ -146,6 +146,22 @@ tbody tr:hover { background: rgb(28 28 28 / 3%); }
 .dialog-form input:focus-visible, .dialog-form select:focus-visible, .dialog-form textarea:focus-visible, .auth-form input:focus-visible, .event-inline-form input:focus-visible { outline: 2px solid var(--ed-ink); outline-offset: 3px; }
 .dialog-form input::placeholder, .dialog-form textarea::placeholder, .auth-form input::placeholder { color: var(--ed-faint); }
 .dialog-form label:focus-within, .auth-form label:focus-within { color: var(--ed-ink); }
+.application-picker { position: relative; min-width: 0; }
+.application-picker-label { color: var(--ed-ink); font-size: 13px; font-weight: 700; letter-spacing: .03em; margin-bottom: 7px; }
+.application-picker-trigger { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 1px; border: 0; border-bottom: 1px solid var(--ed-line-strong); background: transparent; color: var(--ed-ink); text-align: left; font-size: 16px; }
+.application-picker-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.application-picker-trigger svg { flex: none; }
+.application-picker-trigger:focus-visible, .application-picker-option:focus-visible { outline: 2px solid var(--ed-ink); outline-offset: 3px; }
+.application-picker-panel { position: absolute; z-index: 5; top: 100%; left: 0; right: 0; padding: 10px; background: var(--ed-paper); border: 1px solid var(--ed-ink); box-shadow: 0 12px 28px rgb(28 28 28 / 12%); }
+.application-picker-search { display: flex; align-items: center; gap: 9px; padding: 0 8px; border-bottom: 1px solid var(--ed-line-strong); }
+.application-picker-search input { width: 100%; min-width: 0; border: 0; box-shadow: none; }
+.application-picker-search input:focus { box-shadow: none; }
+.application-picker-options { max-height: 240px; overflow-y: auto; }
+.application-picker-option { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 8px; border: 0; background: transparent; color: var(--ed-ink); text-align: left; font-size: 14px; }
+.application-picker-option:hover, .application-picker-option.selected { background: rgb(28 28 28 / 7%); }
+.application-picker-option span { overflow-wrap: anywhere; }
+.application-picker-option svg { flex: none; }
+.application-picker-empty { margin: 12px 8px; color: var(--ed-muted); font-size: 13px; }
 .form-divider { color: var(--ed-ink); border-top: 1px solid var(--ed-line); }
 .form-divider span { color: var(--ed-muted); }
 .checkbox-label input, .import-choice input { accent-color: var(--ed-ink); }
