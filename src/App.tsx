@@ -58,7 +58,7 @@ function App() {
   const pending = useMemo(() => futureEvents.filter(e => !e.completed), [futureEvents])
   const overdue = useMemo(() => pastEvents.filter(e => !e.completed), [pastEvents])
   const completedEvents = useMemo(() => pastEvents.filter(e => e.completed), [pastEvents])
-  const upcoming = pending
+  const attentionEvents = [...overdue, ...pending].slice(0, 4)
   const filtered = useMemo(() => applications.filter(a => (statusFilter === '全部状态' || a.status === statusFilter) && `${a.company} ${a.role} ${a.platform || ''}`.toLowerCase().includes(search.toLowerCase())), [applications, search, statusFilter])
   const nameFor = (id: string) => applications.find(a => a.id === id)
   const closeNav = (next: View) => { setView(next); setMenuOpen(false) }
@@ -110,8 +110,8 @@ function App() {
 
   return <div className="app-shell">
     <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
-      <div className="brand"><span className="brand-symbol">J</span><span><strong>求职手帐</strong><small>JOB JOURNEY</small></span></div>
-      <div className="nav-label">工作台</div>
+      <div className="brand"><strong>求职手帐</strong></div>
+      <div className="nav-label">我的记录</div>
       <nav aria-label="主导航">
         <button className={view === 'overview' ? 'active' : ''} onClick={() => closeNav('overview')}><LayoutDashboard size={18} /> 总览</button>
         <button className={view === 'applications' ? 'active' : ''} onClick={() => closeNav('applications')}><BriefcaseBusiness size={18} /> 投递记录 <span>{applications.length}</span></button>
@@ -121,12 +121,12 @@ function App() {
     </aside>
     {menuOpen && <button className="backdrop mobile-backdrop" aria-label="关闭导航" onClick={() => setMenuOpen(false)} />}
     <main className="main">
-      <header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMenuOpen(true)}><Menu size={20} /></button></div><div className="topbar-right"><span className="sync-dot" /> 已同步 <span className="avatar small">{session.user.email?.charAt(0).toUpperCase()}</span></div></header>
+      <header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMenuOpen(true)}><Menu size={20} /></button><span>{new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'long', day: 'numeric', weekday: 'long' }).format(now)}</span></div><div className="topbar-right"><span className="topbar-account">{session.user.email}</span><span className="avatar small">{session.user.email?.charAt(0).toUpperCase()}</span></div></header>
       <div className="content">
         {view === 'overview' && <>
-          <div className="page-intro"><div><h1>总览</h1><p>投递记录与笔面试安排</p></div><Button className="intro-action" highlighted onClick={() => setAppModal('new')}><Plus size={18} /> 新增投递</Button></div>
-          <div className="stats-grid"><Stat label="总投递" value={applications.length} note="条投递记录" icon={<BriefcaseBusiness size={21} />} tone="purple" /><Stat label="进行中" value={applications.filter(a => !['Offer', '已结束'].includes(a.status)).length} note="条进行中的投递" icon={<ArrowRight size={21} />} tone="blue" /><Stat label="即将开始" value={upcoming.length} note="项笔面试安排" icon={<CalendarDays size={21} />} tone="orange" /><Stat label="已获 Offer" value={applications.filter(a => a.status === 'Offer').length} note="条 Offer 记录" icon={<Check size={21} />} tone="green" /></div>
-          <div className="two-column"><section className="panel"><PanelHead title="待办日程" subtitle={`${pending.length} 项待办${overdue.length ? ` · ${overdue.length} 项已过期` : ''}`} action="查看全部" onAction={() => closeNav('schedule')} />{pending.length ? <div className="timeline">{pending.slice(0, 4).map(renderEventRow)}</div> : <Empty icon={<CalendarDays size={26} />} title="暂无即将开始的日程" subtitle="收到通知后可在这里添加日程。" action="添加日程" onAction={() => { setEventAppId(''); setEventModal('new') }} />}</section><section className="panel"><PanelHead title="最近投递" subtitle={`${applications.length} 条投递记录`} action="查看全部" onAction={() => closeNav('applications')} />{applications.length ? <div className="recent-list">{applications.slice(0, 5).map(a => <button className="recent-item" key={a.id} onClick={() => setAppModal(a)}><span className="company-mark">{a.company.charAt(0)}</span><span className="recent-name"><strong>{a.company}</strong><small>{displayRole(a.role)}</small></span><Badge status={a.status} /></button>)}</div> : <Empty icon={<BriefcaseBusiness size={26} />} title="从第一条投递开始" subtitle="公司、岗位和链接都能集中记录。" action="新增投递" onAction={() => setAppModal('new')} />}</section></div>
+          <div className="page-intro"><div><h1>总览</h1><p>{overdue.length ? `${overdue.length} 项日程已过期，建议先处理。` : pending.length ? `${pending.length} 项日程待完成。` : '目前没有待完成的日程。'}</p></div><Button className="intro-action" highlighted onClick={() => setAppModal('new')}><Plus size={18} /> 新增投递</Button></div>
+          <section className="summary-panel panel" aria-label="求职概况"><table className="summary-table"><thead><tr><th scope="col">总投递</th><th scope="col">进行中</th><th scope="col">待办日程</th></tr></thead><tbody><tr><td>{applications.length}</td><td>{applications.filter(a => !['Offer', '已结束'].includes(a.status)).length}</td><td>{pending.length + overdue.length}</td></tr></tbody></table></section>
+          <div className="two-column"><section className="panel"><PanelHead title="待办日程" subtitle={`${pending.length} 项待办${overdue.length ? ` · ${overdue.length} 项已过期` : ''}`} action="查看全部" onAction={() => closeNav('schedule')} />{attentionEvents.length ? <div className="timeline">{attentionEvents.map(renderEventRow)}</div> : <Empty icon={<CalendarDays size={26} />} title="暂无待办日程" subtitle="收到笔试或面试通知后，可在这里添加时间。" action="添加日程" onAction={() => { setEventAppId(''); setEventModal('new') }} />}</section><section className="panel"><PanelHead title="最近投递" subtitle={`${applications.length} 条投递记录`} action="查看全部" onAction={() => closeNav('applications')} />{applications.length ? <div className="recent-list">{applications.slice(0, 5).map(a => <button className="recent-item" key={a.id} onClick={() => setAppModal(a)}><span className="company-mark">{a.company.charAt(0)}</span><span className="recent-name"><strong>{a.company}</strong><small>{displayRole(a.role)}</small></span><Badge status={a.status} /></button>)}</div> : <Empty icon={<BriefcaseBusiness size={26} />} title="还没有投递记录" subtitle="添加公司和岗位后，可在这里查看最近的投递。" action="新增投递" onAction={() => setAppModal('new')} />}</section></div>
 
         </>}
         {view === 'applications' && <><div className="section-header"><div><h1>投递记录</h1><p>共 {applications.length} 条，按公司、岗位或状态查找</p></div><Button highlighted onClick={() => setAppModal('new')}><Plus size={18} /> 新增投递</Button></div><div className="panel table-panel"><div className="toolbar"><div className="search-field"><Search size={18} /><input placeholder="搜索公司、岗位或平台…" value={search} onChange={e => setSearch(e.target.value)} /></div><div className="toolbar-actions"><div className="select-wrap"><select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option>全部状态</option>{statuses.map(s => <option key={s}>{s}</option>)}</select><ChevronDown size={16} /></div><Button variant="secondary" onClick={() => setImportOpen(true)}><Upload size={15} /> 导入 TXT</Button></div></div>{filtered.length ? <div className="table-scroll"><table><thead><tr><th>公司 / 岗位</th><th>投递平台</th><th>投递日期</th><th>当前状态</th><th>操作</th></tr></thead><tbody>{filtered.map(a => <tr key={a.id}><td><div className="company-cell"><span className="company-mark">{a.company.charAt(0)}</span><span><strong>{a.company}</strong><small>{displayRole(a.role)}</small></span></div></td><td>{displayPlatform(a.platform, a.job_url)}</td><td>{formatDate(a.applied_at)}</td><td><Badge status={a.status} /></td><td><div className="row-actions">{safeUrl(a.job_url) && <a className="row-link" href={safeUrl(a.job_url)} target="_blank" rel="noopener noreferrer" title="打开投递网站"><ExternalLink size={17} /><span>打开网站</span></a>}{a.password_ciphertext && <button className="icon-button" title="查看密码" onClick={() => setVaultRecord(a)}><LockKeyhole size={17} /></button>}<button className="icon-button" title="编辑" onClick={() => setAppModal(a)}><Pencil size={17} /></button><button className="icon-button" title="添加日程" onClick={() => { setEventAppId(a.id); setEventModal('new') }}><CalendarDays size={17} /></button></div></td></tr>)}</tbody></table></div> : <Empty icon={<Search size={26} />} title={applications.length ? '没有符合条件的记录' : '还没有投递记录'} subtitle={applications.length ? '试试调整搜索词或筛选条件。' : '创建第一条，开始整理你的求职进展。'} action={applications.length ? undefined : '新增投递'} onAction={() => setAppModal('new')} />}</div></>}
@@ -148,7 +148,7 @@ function App() {
   </div>
 }
 
-function Setup() { return <div className="auth-page"><div className="auth-card"><span className="brand-symbol">J</span><div className="eyebrow">INITIAL SETUP</div><h1>先连接你的数据库</h1><p>跨设备同步需要 Supabase。请按项目 README 创建数据库，并在部署平台或本地环境变量中设置 <code>VITE_SUPABASE_URL</code> 和 <code>VITE_SUPABASE_ANON_KEY</code>。</p><div className="setup-note"><ShieldCheck size={19} /> 请使用公开的 publishable / anon key，切勿填入 service role key。</div></div></div> }
+function Setup() { return <div className="auth-page"><div className="auth-card"><h1>先连接数据库</h1><p>跨设备同步需要 Supabase。请按项目 README 创建数据库，并在部署平台或本地环境变量中设置 <code>VITE_SUPABASE_URL</code> 和 <code>VITE_SUPABASE_ANON_KEY</code>。</p><div className="setup-note"><ShieldCheck size={19} /> 请使用公开的 publishable / anon key，切勿填入 service role key。</div></div></div> }
 function Auth({ onNotice, toast }: { onNotice: (value: string) => void; toast: string }) {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
@@ -175,7 +175,7 @@ function Auth({ onNotice, toast }: { onNotice: (value: string) => void; toast: s
   }
   return <div className="auth-page">
     <div className="auth-form-wrap"><div className="auth-form">
-      <div className="brand auth-brand"><span className="brand-symbol">J</span><span><strong>求职手帐</strong><small>JOB JOURNEY</small></span></div>
+      <div className="brand auth-brand"><strong>求职手帐</strong></div>
       <div className="auth-heading"><h1>{mode === 'login' ? '登录' : '创建账号'}</h1><p>{mode === 'login' ? '使用邮箱和密码进入工作台。' : '创建账号后即可记录投递与日程。'}</p></div>
       <form onSubmit={submit}>
         <label>邮箱地址<input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" /></label>
@@ -187,7 +187,6 @@ function Auth({ onNotice, toast }: { onNotice: (value: string) => void; toast: s
     </div></div>{toast && <div className="toast" role="status">{toast}</div>}
   </div>
 }
-function Stat({ label, value, note, icon, tone }: { label: string; value: number; note: string; icon: React.ReactNode; tone: string }) { return <div className="stat-card"><div className={`stat-icon ${tone}`}>{icon}</div><span>{label}</span><strong>{value}</strong><small>{note}</small></div> }
 function Badge({ status }: { status: Status }) { return <span className={`badge badge-${status}`}>{status}</span> }
 function PanelHead({ title, subtitle, action, onAction }: { title: string; subtitle: string; action?: string; onAction?: () => void }) { return <div className="panel-head"><div><h2>{title}</h2><p>{subtitle}</p></div>{action && <button onClick={onAction}>{action} <ArrowRight size={16} /></button>}</div> }
 function Empty({ icon, title, subtitle, action, onAction }: { icon: React.ReactNode; title: string; subtitle: string; action?: string; onAction?: () => void }) { return <div className="empty"><span className="empty-icon">{icon}</span><strong>{title}</strong><p>{subtitle}</p>{action && <button className="text-button" onClick={onAction}>{action} <ArrowRight size={16} /></button>}</div> }
